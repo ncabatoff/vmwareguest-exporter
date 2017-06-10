@@ -15,7 +15,12 @@ import (
 const metric_name_pfx = "vmwareguest_"
 
 var (
-	descs           []*prometheus.Desc
+	descs       []*prometheus.Desc
+	isGuestDesc = prometheus.NewDesc(
+		"vmwareguest_isguest",
+		"1 if running on a vmware guest with tools installed, 0 otherwise",
+		[]string{},
+		nil)
 	collecterrsDesc = prometheus.NewDesc(
 		"vmwareguest_collecterrors",
 		"errors harvesting metrics",
@@ -44,12 +49,15 @@ type Collector struct {
 	events  int
 }
 
+// Return a new Collector.  If we can't initialize the vmguestlib session,
+// we'll return both a collector and an error, but the collector will publish
+// only the isguest metric (with a value of 0).
 func NewCollector() (*Collector, error) {
 	s, err := vmguestlib.NewSession()
 	if err != nil {
-		return nil, err
+		s = nil // just to be sure
 	}
-	return &Collector{session: s}, nil
+	return &Collector{session: s}, err
 }
 
 func main() {
@@ -61,8 +69,7 @@ func main() {
 
 	c, err := NewCollector()
 	if err != nil {
-		log.Printf("%s", err)
-		return
+		log.Printf("Error creating collector: %v", err)
 	}
 	prometheus.MustRegister(c)
 
@@ -82,10 +89,21 @@ func main() {
 
 // Collect implements prometheus.Collector.
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
+	isguest := 0
+	if c.session != nil {
+		isguest = 1
+	}
+	ch <- prometheus.MustNewConstMetric(isGuestDesc,
+		prometheus.GaugeValue,
+		float64(isguest))
+
+	if c.session == nil {
+		return
+	}
 
 	if event, err := c.session.RefreshInfo(); err != nil {
 		if err != nil {
-			fmt.Println(os.Stderr, "An error occured: ", err)
+			log.Printf("An error occured: %v", err)
 		}
 		os.Exit(1)
 	} else if event {
@@ -112,6 +130,11 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 // Describe implements prometheus.Collector.
 func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- isGuestDesc
+	if c.session == nil {
+		return
+	}
+
 	for _, d := range descs {
 		ch <- d
 	}
