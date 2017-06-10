@@ -54,7 +54,7 @@ func NewCollector() (*Collector, error) {
 
 func main() {
 	var (
-		listenAddress = flag.String("web.listen-address", ":9257", "Address on which to expose metrics and web interface.")
+		listenAddress = flag.String("web.listen-address", ":9263", "Address on which to expose metrics and web interface.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	)
 	flag.Parse()
