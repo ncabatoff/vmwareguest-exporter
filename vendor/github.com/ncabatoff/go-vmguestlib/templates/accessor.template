@@ -1,0 +1,5 @@
+
+// ${FUNCTION} ${COMMENT}
+func (s *Session) ${FUNCTION}() (${VALUE_TYPE_L}, error) {
+    return s.Handle.get${VALUE_TYPE_U}Value(C.p_${VALUE_TYPE_L}_f(C.${NATIVE_FUNCTION}))
+}

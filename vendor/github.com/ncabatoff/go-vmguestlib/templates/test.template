@@ -1,0 +1,14 @@
+
+func Test${FUNCTION}(t *testing.T) {
+    var err error
+    var s *Session
+
+    if s, err = NewSession(); err != nil {
+        t.Fatal(err)
+    }
+    if _, err = s.${FUNCTION}(); err != nil {
+        t.Fatal(err)
+    }
+
+    s.Close()
+}
